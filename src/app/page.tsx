@@ -183,6 +183,8 @@ export default function Home() {
           retryable: response.errorType === 'network_error' || response.errorType === 'rate_limit_exceeded',
         });
         setTranscriptionState('error');
+        setRecordingState('idle');
+        reset(); // Reset the audio recorder hook state
         isProcessingRef.current = false;
         return;
       }
@@ -201,6 +203,8 @@ export default function Home() {
         retryable: true,
       });
       setTranscriptionState('error');
+      setRecordingState('idle');
+      reset(); // Reset the audio recorder hook state
       isProcessingRef.current = false;
       return;
     }
@@ -216,6 +220,18 @@ export default function Home() {
       setSummary(generatedSummary, transcribedText);
       setSummaryState('success');
 
+      // Persist summary to history (selectedRecordingId was set by addRecordingToHistory)
+      const currentSelectedId = useHistoryStore.getState().selectedRecordingId;
+      if (currentSelectedId) {
+        try {
+          await updateHistorySummary(currentSelectedId, generatedSummary);
+          await loadHistory(); // Refresh to get updated recording
+        } catch (persistError) {
+          // Summary was generated but couldn't be saved - not critical
+          console.warn('Failed to persist summary to history:', persistError);
+        }
+      }
+
       toast({
         title: 'Processing complete',
         description: 'Transcription and summary have been generated.',
@@ -225,8 +241,10 @@ export default function Home() {
       // Switch to Summary tab
       setActiveTab('summary');
 
-      // Note: Don't reset here - the transcription and summary should stay visible
-      // Reset happens when user starts a new recording (in handleStart)
+      // Reset recording state to idle so Start button is enabled again
+      // Note: Don't reset filePath here - it would trigger the useEffect loop
+      setRecordingState('idle');
+      reset(); // Reset the audio recorder hook state
 
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to summarize text';
@@ -237,13 +255,17 @@ export default function Home() {
         description: message,
         variant: 'destructive',
       });
+      // Still reset to idle so user can start new recording
+      setRecordingState('idle');
+      reset(); // Reset the audio recorder hook state
     } finally {
       isProcessingRef.current = false;
     }
   }, [
     setTranscriptionState, setTranscriptionError, setTranscription,
     setSummaryState, setSummaryError, setSummary,
-    addRecordingToHistory, toast
+    setRecordingState, reset,
+    addRecordingToHistory, loadHistory, toast
   ]);
 
   // Save recording when audioResult becomes available after stop, then auto-process
@@ -269,23 +291,23 @@ export default function Home() {
     : transcriptionState;
 
   // Determine what summary to display
-  // If a history item is selected and has a saved summary, use it directly
-  // Otherwise, check if the current summary was generated for this transcription
-  const hasSelectedRecordingWithSummary = selectedRecording?.summary !== undefined;
-  const isSummaryForCurrentTranscription = summarySourceText === displayTranscription && displayTranscription !== null;
+  // Priority: current summary in store > saved summary in selected recording
+  // This ensures freshly generated summaries are shown immediately
+  const hasFreshSummary = summary !== null && summaryState === 'success';
+  const hasSelectedRecordingWithSummary = selectedRecording?.summary !== undefined && selectedRecording?.summary !== null;
 
-  // Use persisted summary from selected recording, or current summary if it matches
-  const displaySummary = hasSelectedRecordingWithSummary
-    ? selectedRecording.summary
-    : (isSummaryForCurrentTranscription ? summary : null);
+  // Use fresh summary first (just generated), then fall back to persisted summary
+  const displaySummary = hasFreshSummary
+    ? summary
+    : (hasSelectedRecordingWithSummary ? selectedRecording.summary : null);
 
-  const displaySummaryState = hasSelectedRecordingWithSummary
-    ? 'success'
-    : (isSummaryForCurrentTranscription ? summaryState : 'idle');
+  const displaySummaryState = hasFreshSummary
+    ? summaryState
+    : (hasSelectedRecordingWithSummary ? 'success' : summaryState);
 
-  const displaySummaryError = hasSelectedRecordingWithSummary
-    ? null
-    : (isSummaryForCurrentTranscription ? summaryError : null);
+  const displaySummaryError = hasFreshSummary
+    ? summaryError
+    : (hasSelectedRecordingWithSummary ? null : summaryError);
 
   return (
     <div className="flex h-screen bg-[#0a0a0a]">

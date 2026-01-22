@@ -82,11 +82,13 @@ EverVoice is a cross-platform desktop app built with Tauri that captures voice r
 ## Features
 
 - **Voice Recording** - Record audio with real-time waveform visualization and intuitive controls (start, pause, resume, stop)
+- **One-Click Processing** - Single "Process" button transcribes audio and generates a summary in one step
 - **AI Transcription** - Convert speech to text using OpenAI Whisper API with automatic language detection
 - **Smart Summarization** - Generate concise Markdown summaries of transcriptions using GPT-4
+- **Tabbed Display** - View transcription or summary in dedicated tabs with contextual actions (copy, custom actions) in each tab
 - **Recording History** - Browse and manage past recordings with playback support
 - **Global Hotkeys** - Start/stop recording from any application using customizable keyboard shortcuts
-- **Custom Actions** - Configure external API integrations to process transcriptions with your own services
+- **Custom Actions** - Configure external API integrations to process transcriptions or summaries with your own services
 - **Cross-Platform** - Runs on Windows, macOS, and Linux
 
 ## Architecture
@@ -137,24 +139,23 @@ EverVoice is a cross-platform desktop app built with Tauri that captures voice r
 User speaks → Microphone → MediaRecorder API → WebM File (local)
                                                      │
                                                      ▼
-                              Tauri invoke ← Transcribe Button
+                              Tauri invoke ← Process Button
                                     │
                                     ▼
                             Rust Backend
                                     │
-                                    ▼
-                         OpenAI Whisper API
-                                    │
-                                    ▼
-                         Transcription Text
-                                    │
-                    ┌───────────────┼───────────────┐
-                    ▼               ▼               ▼
-               Display         Summarize      Custom Action
-                               (GPT-4o)       (External API)
-                                    │
-                                    ▼
-                              Clipboard
+                         ┌──────────┴──────────┐
+                         ▼                     ▼
+                  OpenAI Whisper         OpenAI GPT-4o
+                  (Transcription)        (Summarization)
+                         │                     │
+                         ▼                     ▼
+                  Transcription Tab      Summary Tab
+                         │                     │
+               ┌─────────┴─────────┐  ┌───────┴───────┐
+               ▼                   ▼  ▼               ▼
+            Copy to         Custom Action    Copy to    Custom Action
+            Clipboard       (External API)   Clipboard  (External API)
 ```
 
 ### Key Components
@@ -282,16 +283,21 @@ EverVoice needs to run in the background efficiently. Tauri's minimal footprint 
 3. Use **Pause** to temporarily stop, then **Resume** to continue
 4. Click **Stop** when finished
 
-### Transcription
+### Processing (Transcription + Summarization)
 
-1. After stopping a recording, click the **Transcribe** button
-2. Wait for OpenAI Whisper to process your audio
-3. View the transcription in the main display area
+1. After stopping a recording, click the **Process** button
+2. The app automatically transcribes your audio (via OpenAI Whisper) and then generates a summary (via GPT-4)
+3. Progress is shown for each step: "Transcribing..." → "Summarizing..."
+4. When complete, the Summary tab opens automatically
 
-### Summarization
+### Tab Actions
 
-1. After transcription completes, click **Summarize & Copy**
-2. The AI-generated Markdown summary is automatically copied to your clipboard
+Each tab (Transcription and Summary) provides contextual actions:
+
+- **Copy** - Copy the current text to clipboard
+- **Custom Actions** - Send the text to your configured external services
+
+This allows you to work with either the full transcription or the summary independently.
 
 ### 🔥 Custom Actions
 
