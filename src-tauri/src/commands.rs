@@ -458,13 +458,3 @@ fn get_settings_internal(app: &AppHandle) -> Result<Settings, String> {
     }
 }
 
-/// Helper function to retrieve the API key from settings
-fn get_api_key(app: &AppHandle) -> Result<Option<String>, String> {
-    let settings = get_settings_internal(app)?;
-
-    // Check if API key is set and not empty
-    match settings.api_key {
-        Some(key) if !key.trim().is_empty() => Ok(Some(key)),
-        _ => Ok(None),
-    }
-}

@@ -71,6 +71,8 @@ interface RecordingStoreActions {
   resetForNewRecording: () => void;
   /** Clear transcription state only (for retry) */
   clearTranscription: () => void;
+  /** Reset elapsed seconds to zero */
+  resetElapsedSeconds: () => void;
 }
 
 export type RecordingStore = RecordingStoreState & RecordingStoreActions;
@@ -186,5 +188,9 @@ export const useRecordingStore = create<RecordingStore>((set) => ({
       summaryError: null,
       summarySourceText: null,
     });
+  },
+
+  resetElapsedSeconds: () => {
+    set({ elapsedSeconds: 0, warningTriggered: false });
   },
 }));

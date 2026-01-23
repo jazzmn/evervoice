@@ -84,6 +84,26 @@ struct ExternalServiceRequest {
     text: String,
 }
 
+/// Sanitize text for JSON transmission
+/// Replaces newlines and other control characters with spaces
+fn sanitize_text_for_json(text: &str) -> String {
+    text.chars()
+        .map(|c| {
+            if c == '\n' || c == '\r' || c == '\t' {
+                ' '
+            } else if c.is_control() {
+                ' '
+            } else {
+                c
+            }
+        })
+        .collect::<String>()
+        // Collapse multiple spaces into one
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 /// Validates that a URL starts with http:// or https://
 pub fn validate_url(url: &str) -> Result<(), ExternalServiceError> {
     let url_lower = url.to_lowercase();
@@ -159,9 +179,9 @@ pub async fn call_external_service_impl<C: HttpClient>(
         return ExternalServiceResponse::error(e);
     }
 
-    // Build request body
+    // Build request body with sanitized text
     let request = ExternalServiceRequest {
-        text: text.to_string(),
+        text: sanitize_text_for_json(text),
     };
 
     let body = match serde_json::to_string(&request) {

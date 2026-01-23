@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { listenForGlobalHotkey, isTauri } from '@/lib/tauri-api';
+import { listenForGlobalHotkey, isTauri, focusWindow } from '@/lib/tauri-api';
 import { useRecordingStore } from '@/stores/recording-store';
 import { toast } from '@/hooks/use-toast';
 
@@ -35,20 +35,34 @@ export function useGlobalHotkey(
   // Get recording state from store
   const recordingState = useRecordingStore((state) => state.recordingState);
 
-  // Use a ref to track recording state to avoid stale closures
+  // Use refs to track state and callbacks to avoid stale closures
   const recordingStateRef = useRef(recordingState);
+  const onStartRecordingRef = useRef(onStartRecording);
+  const onStopRecordingRef = useRef(onStopRecording);
+
   useEffect(() => {
     recordingStateRef.current = recordingState;
   }, [recordingState]);
 
-  // Handle the hotkey event
+  useEffect(() => {
+    onStartRecordingRef.current = onStartRecording;
+  }, [onStartRecording]);
+
+  useEffect(() => {
+    onStopRecordingRef.current = onStopRecording;
+  }, [onStopRecording]);
+
+  // Handle the hotkey event - uses refs to always get current values
   const handleHotkeyTriggered = useCallback(
-    (payload: HotkeyEventPayload) => {
+    async (payload: HotkeyEventPayload) => {
+      // Bring window to foreground when hotkey is triggered
+      await focusWindow();
+
       const currentState = recordingStateRef.current;
 
       if (currentState === 'idle' || currentState === 'stopped') {
         // Start recording
-        onStartRecording();
+        onStartRecordingRef.current();
         toast({
           title: 'Recording started',
           description: `Triggered by ${payload.hotkey}`,
@@ -56,7 +70,7 @@ export function useGlobalHotkey(
         });
       } else if (currentState === 'recording' || currentState === 'paused') {
         // Stop recording
-        onStopRecording();
+        onStopRecordingRef.current();
         toast({
           title: 'Recording stopped',
           description: `Triggered by ${payload.hotkey}`,
@@ -64,7 +78,7 @@ export function useGlobalHotkey(
         });
       }
     },
-    [onStartRecording, onStopRecording]
+    [] // No dependencies - uses refs
   );
 
   // Set up the event listener

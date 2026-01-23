@@ -65,10 +65,28 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
 
     try {
       const settings = await getSettings();
-      // Ensure customActions array exists for backward compatibility
+      // Ensure customActions array exists and has proper structure for backward compatibility
+      // Handle both old format (strings) and new format (objects)
+      const rawActions = settings.customActions ?? [];
+      const normalizedActions = rawActions.map((action: CustomAction | string, index: number) => {
+        if (typeof action === 'string') {
+          // Old format: just URL string
+          return {
+            id: generateId(),
+            name: `Action ${index + 1}`,
+            url: action,
+          };
+        }
+        // New format: object with id, name, url
+        return {
+          id: action.id,
+          name: action.name || action.url, // Fallback to URL if name is missing
+          url: action.url,
+        };
+      });
       const normalizedSettings: Settings = {
         ...settings,
-        customActions: settings.customActions ?? [],
+        customActions: normalizedActions,
         globalHotkey: settings.globalHotkey ?? null,
       };
       set({ settings: normalizedSettings, isLoaded: true, error: null });

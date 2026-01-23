@@ -35,6 +35,32 @@ export async function saveSettings(settings: Settings): Promise<void> {
 }
 
 // ============================================================================
+// Window Management API
+// ============================================================================
+
+/**
+ * Bring the main window to the foreground and focus it.
+ * Useful when triggered by global hotkey.
+ */
+export async function focusWindow(): Promise<void> {
+  if (!isTauri()) {
+    return;
+  }
+
+  try {
+    const { getCurrentWebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+    const window = getCurrentWebviewWindow();
+
+    // Show the window if minimized, then focus it
+    await window.show();
+    await window.unminimize();
+    await window.setFocus();
+  } catch (error) {
+    console.error('Failed to focus window:', error);
+  }
+}
+
+// ============================================================================
 // Global Hotkey API
 // ============================================================================
 

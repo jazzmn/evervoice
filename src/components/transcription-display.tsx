@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef, KeyboardEvent } from 'react';
-import { AlertCircle, RefreshCw, CheckCircle2, Loader2, Copy, Check } from 'lucide-react';
+import { AlertCircle, RefreshCw, Loader2, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import { CopyTextButton } from './copy-text-button';
@@ -43,19 +43,11 @@ export interface TranscriptionDisplayProps {
 }
 
 /**
- * Calculate word count from text
- * Estimates words by splitting on whitespace
- */
-function getWordCount(text: string): number {
-  return text.trim().split(/\s+/).filter(Boolean).length;
-}
-
-/**
  * Component to display transcription results with tabbed interface for summary.
  *
  * Shows:
  * - Tabbed navigation between "Transcription" and "Summary" tabs
- * - Transcribed text on success with character/word counts
+ * - Transcribed text on success
  * - Copy button and custom action buttons in transcription tab
  * - Summary tab with rendered markdown content
  * - Copy button and custom action buttons in summary tab
@@ -170,9 +162,38 @@ export function TranscriptionDisplay({
     }
   };
 
-  // Don't render anything if idle or transcribing
-  if (transcriptionState === 'idle' || transcriptionState === 'transcribing') {
+  // Don't render anything if idle
+  if (transcriptionState === 'idle') {
     return null;
+  }
+
+  // Show processing state during transcription
+  if (transcriptionState === 'transcribing') {
+    return (
+      <div
+        className={cn(
+          'rounded-lg border border-zinc-700 bg-zinc-900/50 p-6',
+          className
+        )}
+        role="status"
+        aria-live="polite"
+      >
+        <div className="flex flex-col items-center justify-center gap-3">
+          <Loader2
+            className="h-8 w-8 animate-spin text-[#F0E14A]"
+            aria-hidden="true"
+          />
+          <div className="text-center">
+            <p className="text-sm font-medium text-zinc-200">
+              Transcribing audio...
+            </p>
+            <p className="mt-1 text-xs text-zinc-400">
+              This may take a moment depending on the recording length.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Show error state for transcription
@@ -217,9 +238,6 @@ export function TranscriptionDisplay({
 
   // Show success state with tabbed interface
   if (transcriptionState === 'success' && transcription) {
-    const charCount = transcription.length;
-    const wordCount = getWordCount(transcription);
-
     return (
       <div
         className={cn(
@@ -230,17 +248,6 @@ export function TranscriptionDisplay({
         aria-label="Transcription and summary results"
         data-testid="transcription-display"
       >
-        {/* Header with success indicator */}
-        <div className="flex items-center gap-2 border-b border-green-900 px-4 py-3">
-          <CheckCircle2
-            className="h-5 w-5 text-green-400"
-            aria-hidden="true"
-          />
-          <h3 className="text-sm font-semibold text-green-200">
-            Transcription Complete
-          </h3>
-        </div>
-
         {/* Tab navigation */}
         <div
           className="flex border-b border-green-900"
@@ -284,7 +291,15 @@ export function TranscriptionDisplay({
                   : 'text-zinc-400 hover:text-zinc-300'
             )}
           >
-            Summary
+            <span className="flex items-center justify-center gap-2">
+              Summary
+              {summaryState === 'loading' && (
+                <Loader2
+                  className="h-3 w-3 animate-spin text-[#F0E14A]"
+                  aria-hidden="true"
+                />
+              )}
+            </span>
           </button>
         </div>
 
@@ -305,43 +320,23 @@ export function TranscriptionDisplay({
             </p>
           </div>
 
-          {/* Stats footer with Copy button */}
-          <div className="flex items-center justify-between border-t border-green-900 px-4 py-2">
-            <div className="flex items-center gap-4">
-              <span
-                className="text-xs text-zinc-400"
-                data-testid="char-count"
-              >
-                {charCount.toLocaleString()} characters
-              </span>
-              <span
-                className="text-xs text-zinc-400"
-                data-testid="word-count"
-              >
-                {wordCount.toLocaleString()} words
-              </span>
-            </div>
+          {/* Action buttons row (Copy + Custom Actions) */}
+          <div
+            className="flex flex-wrap items-center gap-2 border-t border-green-900 px-4 py-2"
+            role="group"
+            aria-label="Actions for transcription"
+            data-testid="transcription-custom-actions"
+          >
             <CopyTextButton transcription={transcription} />
+            {customActions.map((action) => (
+              <CustomActionButton
+                key={action.id}
+                name={action.name}
+                url={action.url}
+                transcription={transcription}
+              />
+            ))}
           </div>
-
-          {/* Custom action buttons for transcription */}
-          {customActions.length > 0 && (
-            <div
-              className="flex flex-wrap items-center gap-2 border-t border-green-900 px-4 py-2"
-              role="group"
-              aria-label="Custom actions for transcription"
-              data-testid="transcription-custom-actions"
-            >
-              {customActions.map((action) => (
-                <CustomActionButton
-                  key={action.id}
-                  name={action.name}
-                  url={action.url}
-                  transcription={transcription}
-                />
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Summary tab panel */}
@@ -407,8 +402,13 @@ export function TranscriptionDisplay({
                 <ReactMarkdown>{summary}</ReactMarkdown>
               </div>
 
-              {/* Copy summary footer */}
-              <div className="flex items-center justify-end border-t border-green-900 px-4 py-2">
+              {/* Action buttons row (Copy + Custom Actions) */}
+              <div
+                className="flex flex-wrap items-center gap-2 border-t border-green-900 px-4 py-2"
+                role="group"
+                aria-label="Actions for summary"
+                data-testid="summary-custom-actions"
+              >
                 <Button
                   variant="outline"
                   size="sm"
@@ -430,26 +430,15 @@ export function TranscriptionDisplay({
                     </>
                   )}
                 </Button>
+                {customActions.map((action) => (
+                  <CustomActionButton
+                    key={action.id}
+                    name={action.name}
+                    url={action.url}
+                    transcription={summary}
+                  />
+                ))}
               </div>
-
-              {/* Custom action buttons for summary */}
-              {customActions.length > 0 && (
-                <div
-                  className="flex flex-wrap items-center gap-2 border-t border-green-900 px-4 py-2"
-                  role="group"
-                  aria-label="Custom actions for summary"
-                  data-testid="summary-custom-actions"
-                >
-                  {customActions.map((action) => (
-                    <CustomActionButton
-                      key={action.id}
-                      name={action.name}
-                      url={action.url}
-                      transcription={summary}
-                    />
-                  ))}
-                </div>
-              )}
             </>
           )}
 

@@ -314,7 +314,8 @@ Custom Actions let you send transcriptions to any external API with one click—
 1. Open **Settings** → **Custom Actions**
 2. Click **Add Action**
 3. Enter a **Name** (appears as button label) and **URL** (your API endpoint)
-4. Save and close Settings
+4. Your configured actions appear in a list showing only the action name
+5. Save and close Settings
 
 **How it works:**
 
@@ -339,10 +340,10 @@ Content-Type: application/json
 
 ### History
 
-- Access past recordings from the sidebar on the left
-- Click any recording to view its transcription
+- Access past recordings from the sidebar on the right
+- Click any recording to view its transcription and summary
 - Use the play button to listen to the audio
-- Delete recordings you no longer need
+- Delete individual recordings or clear all history with the trash icon in the header
 
 ### Settings
 

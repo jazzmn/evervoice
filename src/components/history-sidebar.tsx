@@ -1,7 +1,8 @@
 'use client';
 
-import { Loader2, History } from 'lucide-react';
+import { Loader2, History, Trash2 } from 'lucide-react';
 import { HistoryItem } from './history-item';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { Recording } from '@/types';
 
@@ -19,6 +20,8 @@ export interface HistorySidebarProps {
   onSelectRecording?: (id: string) => void;
   /** Handler for when a recording is deleted */
   onDeleteRecording?: (id: string) => void;
+  /** Handler for clearing all recordings */
+  onClearAll?: () => void;
   /** Additional CSS classes */
   className?: string;
 }
@@ -39,20 +42,35 @@ export function HistorySidebar({
   isLoading = false,
   onSelectRecording,
   onDeleteRecording,
+  onClearAll,
   className,
 }: HistorySidebarProps) {
   return (
     <aside
       className={cn(
-        'flex h-full w-[280px] flex-shrink-0 flex-col border-r border-zinc-800 bg-zinc-950',
+        'flex h-full w-[280px] flex-shrink-0 flex-col border-l border-zinc-800 bg-zinc-950',
         className
       )}
       aria-label="Recording history"
     >
       {/* Header */}
-      <header className="flex items-center gap-2 border-b border-zinc-800 px-4 py-3">
-        <History className="h-5 w-5 text-[#F0E14A]" aria-hidden="true" />
-        <h2 className="font-[family-name:var(--font-nunito)] font-bold text-[#F0E14A]">Recording History</h2>
+      <header className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <History className="h-5 w-5 text-[#F0E14A]" aria-hidden="true" />
+          <h2 className="font-[family-name:var(--font-nunito)] font-bold text-[#F0E14A]">Recording History</h2>
+        </div>
+        {recordings.length > 0 && onClearAll && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClearAll}
+            className="h-7 w-7 p-0 text-zinc-500 hover:text-red-400"
+            aria-label="Clear all recordings"
+            title="Clear all"
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        )}
       </header>
 
       {/* Content area */}

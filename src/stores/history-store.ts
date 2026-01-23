@@ -36,6 +36,8 @@ interface HistoryStoreActions {
   addRecording: (filePath: string, durationSeconds: number, transcription: string) => Promise<void>;
   /** Delete a recording from history and persist */
   deleteRecording: (id: string) => Promise<void>;
+  /** Delete all recordings from history */
+  clearAllRecordings: () => Promise<void>;
   /** Clear any error state */
   clearError: () => void;
   /** Start playback of a recording by ID */
@@ -153,6 +155,35 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
       await get().loadHistory();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete recording';
+      set({ error: message, isLoading: false });
+    }
+  },
+
+  clearAllRecordings: async () => {
+    // Skip if not in Tauri environment
+    if (!isTauri()) {
+      return;
+    }
+
+    const { recordings } = get();
+    if (recordings.length === 0) {
+      return;
+    }
+
+    set({ isLoading: true, error: null });
+
+    try {
+      // Delete all recordings one by one
+      for (const recording of recordings) {
+        await deleteRecordingHistory(recording.id);
+      }
+      // Clear selection and playback state
+      set({ selectedRecordingId: null, playingRecordingId: null });
+      useRecordingStore.getState().clearSummary();
+      // Refresh the list
+      await get().loadHistory();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to clear history';
       set({ error: message, isLoading: false });
     }
   },

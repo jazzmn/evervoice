@@ -42,10 +42,9 @@ export function CustomActionListItem({ action, onDelete }: CustomActionListItemP
   };
 
   return (
-    <div className="flex items-center justify-between gap-2 p-2 border rounded-md bg-white dark:bg-zinc-950">
+    <div className="flex items-center justify-between gap-2 p-2 border border-zinc-700 rounded-md bg-zinc-800">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{action.name}</p>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{action.url}</p>
+        <p className="text-sm font-medium truncate text-zinc-100">{action.name || 'Unnamed Action'}</p>
       </div>
 
       {showConfirm ? (

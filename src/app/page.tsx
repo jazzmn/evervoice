@@ -33,6 +33,7 @@ export default function Home() {
   const loadHistory = useHistoryStore((state) => state.loadHistory);
   const selectRecording = useHistoryStore((state) => state.selectRecording);
   const deleteRecording = useHistoryStore((state) => state.deleteRecording);
+  const clearAllRecordings = useHistoryStore((state) => state.clearAllRecordings);
   const addRecordingToHistory = useHistoryStore((state) => state.addRecording);
   const selectedRecording = useHistoryStore((state) => getSelectedRecording(state));
 
@@ -74,6 +75,7 @@ export default function Home() {
   const setTranscriptionError = useRecordingStore((state) => state.setTranscriptionError);
   const resetForNewRecording = useRecordingStore((state) => state.resetForNewRecording);
   const clearTranscription = useRecordingStore((state) => state.clearTranscription);
+  const resetElapsedSeconds = useRecordingStore((state) => state.resetElapsedSeconds);
 
   // Summary store
   const summary = useRecordingStore((state) => state.summary);
@@ -130,14 +132,17 @@ export default function Home() {
       resume();
       resumeTimer();
     } else {
-      // Clear previous transcription when starting fresh
+      // Reset all state for a fresh recording
       clearTranscription();
+      setFilePath(null);
+      setAudioResult(null);
+      resetElapsedSeconds();
       // Reset tab to transcription when starting new recording
       setActiveTab('transcription');
       await start();
       startTimer();
     }
-  }, [recordingState, selectRecording, resume, resumeTimer, clearTranscription, start, startTimer]);
+  }, [recordingState, selectRecording, resume, resumeTimer, clearTranscription, setFilePath, setAudioResult, resetElapsedSeconds, start, startTimer]);
 
   // Handle pause recording
   const handlePause = () => {
@@ -146,18 +151,11 @@ export default function Home() {
   };
 
   // Handle stop recording
-  const handleStop = useCallback(async () => {
+  // Note: Don't save here - the useEffect below handles saving once audioResult is available
+  const handleStop = useCallback(() => {
     stop();
     stopTimer();
-
-    // Wait for audio result and save
-    if (audioResult) {
-      const saved = await saveRecording(audioResult);
-      if (saved) {
-        setFilePath(saved.filePath);
-      }
-    }
-  }, [stop, stopTimer, audioResult, saveRecording, setFilePath]);
+  }, [stop, stopTimer]);
 
   // Set up global hotkey listener
   useGlobalHotkey(handleStart, handleStop);
@@ -311,15 +309,6 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-[#0a0a0a]">
-      {/* History Sidebar */}
-      <HistorySidebar
-        recordings={recordings}
-        selectedRecordingId={selectedRecordingId}
-        isLoading={isHistoryLoading}
-        onSelectRecording={selectRecording}
-        onDeleteRecording={deleteRecording}
-      />
-
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-2xl px-4 py-8">
@@ -397,6 +386,14 @@ export default function Home() {
               />
             </div>
 
+            {/* Saving indicator */}
+            {recorderState === 'stopped' && isSaving && transcriptionState === 'idle' && (
+              <div className="mb-4 flex items-center justify-center gap-3 rounded-lg border border-zinc-700 bg-zinc-900/50 p-6">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-600 border-t-[#F0E14A]" />
+                <span className="text-sm text-zinc-300">Saving recording...</span>
+              </div>
+            )}
+
             {/* Transcription Result */}
             <TranscriptionDisplay
               transcriptionState={displayTranscriptionState}
@@ -417,6 +414,16 @@ export default function Home() {
           </footer>
         </div>
       </div>
+
+      {/* History Sidebar (right side) */}
+      <HistorySidebar
+        recordings={recordings}
+        selectedRecordingId={selectedRecordingId}
+        isLoading={isHistoryLoading}
+        onSelectRecording={selectRecording}
+        onDeleteRecording={deleteRecording}
+        onClearAll={clearAllRecordings}
+      />
 
       {/* Toast notifications */}
       <Toaster />

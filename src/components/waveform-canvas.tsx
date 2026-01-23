@@ -299,7 +299,7 @@ export function WaveformCanvas({
     <div
       ref={containerRef}
       className={cn(
-        'relative w-full rounded-md border border-zinc-700 bg-zinc-900',
+        'relative w-full overflow-hidden rounded-md border border-zinc-700 bg-zinc-900',
         className
       )}
       style={{ height: `${height}px` }}
