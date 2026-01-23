@@ -152,10 +152,9 @@ User speaks → Microphone → MediaRecorder API → WebM File (local)
                          ▼                     ▼
                   Transcription Tab      Summary Tab
                          │                     │
-               ┌─────────┴─────────┐  ┌───────┴───────┐
-               ▼                   ▼  ▼               ▼
-            Copy to         Custom Action    Copy to    Custom Action
-            Clipboard       (External API)   Clipboard  (External API)
+                         ▼                     ▼
+                  Action Row:           Action Row:
+                  [Copy] [Custom...]    [Copy] [Custom...]
 ```
 
 ### Key Components
@@ -292,12 +291,12 @@ EverVoice needs to run in the background efficiently. Tauri's minimal footprint 
 
 ### Tab Actions
 
-Each tab (Transcription and Summary) provides contextual actions:
+Each tab (Transcription and Summary) provides contextual actions in a single row:
 
 - **Copy** - Copy the current text to clipboard
 - **Custom Actions** - Send the text to your configured external services
 
-This allows you to work with either the full transcription or the summary independently.
+All action buttons are placed in the same row and wrap automatically when space is limited. This allows you to work with either the full transcription or the summary independently.
 
 ### 🔥 Custom Actions
 
